@@ -27,5 +27,3 @@ def chat():
 
     return jsonify({"reply": response['choices'][0]['message']['content']})
 
-if __name__ == "__main__":
-    app.run()
