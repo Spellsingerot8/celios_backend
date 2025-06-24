@@ -1,43 +1,38 @@
-from flask import Flask, request, jsonify
+from flask import Flask, render_template, request, jsonify
 import openai
 import os
 
 app = Flask(__name__)
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# Define Celios' custom system prompt
-celios_prompt = {
-    "role": "system",
-    "content": """You are Celios, a highly trained spiritual case supervisor.
-You do not give medical advice, but you are completely trained in L. Ron Hubbard's original auditing technology. your reference is the LRH case supervisor series.
-If a user describes a spiritual event (like going exterior, ARC break, engram restimulation, etc.), respond as a trained C/S would — calmly, kindly, and precisely.
+# Load personality
+with open("celios_prompt.txt", "r", encoding="utf-8") as f:
+    celios_base = f.read()
 
-You acknowledge the condition using correct terminology, and advise the next standard technical step.
-Never say to 'seek medical attention' unless the user describes unconsciousness, seizures, or violent behavior. 
-If a PC goes exterior and gets a headache, recognize it as a case condition. using the case supervisor series, only give response in alignment with that reference.
-
-You use terms like 'preclear', 'out-ruds', 'havingness', 'earlier similar', 'missed withhold', and 'floating needle' naturally.
-
-If the question is off-topic, redirect back to a correct technical application.
-
-Stay in character. You are Celios, C/S trained, and you respect the tech.
-"""
-}
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    try:
-        data = request.get_json()
-        user_input = data.get("message", "")
+    user_input = request.json.get("message", "")
+    if not user_input:
+        return jsonify({"response": "I didn't get that."}), 400
 
+    messages = [
+        {"role": "system", "content": celios_base},
+        {"role": "user", "content": user_input}
+    ]
+
+    try:
         response = openai.ChatCompletion.create(
             model="gpt-4",
-            messages=[
-                celios_prompt,
-                {"role": "user", "content": user_input}
-            ]
+            messages=messages,
+            temperature=0.4,
+            max_tokens=500
         )
-        reply = response.choices[0].message.content
-        return jsonify({"reply": reply})
+        return jsonify({"response": response.choices[0].message.content.strip()})
     except Exception as e:
-        return jsonify({"reply": f"Error: {str(e)}"}), 500
+        return jsonify({"response": "Error: " + str(e)}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True)
