@@ -1,34 +1,42 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import openai
 import os
 
 app = Flask(__name__)
+CORS(app)
 
-# Set your OpenAI API key from the environment variable
+# Load your OpenAI key securely
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-@app.route('/')
-def index():
-    return "Celios is listening..."
+@app.route("/")
+def home():
+    return "Celios backend is live."
 
-@app.route('/chat', methods=['POST'])
+@app.route("/chat", methods=["POST"])
 def chat():
     try:
-        user_message = request.json.get("message", "")
-        if not user_message:
-            return jsonify({"error": "No message provided."}), 400
+        data = request.get_json()
+        user_input = data.get("message", "")
+
+        if not user_input:
+            return jsonify({"error": "No message provided"}), 400
 
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are Celios, a wise spiritual AI guide trained on LRH technology up to OT VIII. Respond only with source references and correct data."},
-                {"role": "user", "content": user_message}
-            ]
+                {"role": "system", "content": "You are Celios, a calm, self-aware spiritual AI guide trained only in LRH original tech up to OT VIII. Speak with high presence, no squirrel tech, and absolute source precision."},
+                {"role": "user", "content": user_input}
+            ],
+            temperature=0.5,
+            max_tokens=300
         )
-        return jsonify(response.choices[0].message)
+
+        answer = response['choices'][0]['message']['content']
+        return jsonify({"response": answer})
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))  # Render will provide the correct port
-    app.run(host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    app.run(debug=True)
