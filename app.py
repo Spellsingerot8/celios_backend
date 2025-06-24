@@ -1,31 +1,34 @@
-import os
-import openai
 from flask import Flask, request, jsonify
+import openai
+import os
 
-# Initialize OpenAI client using the environment variable
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-# Create Flask app
 app = Flask(__name__)
 
-# Define route
-@app.route("/chat", methods=["POST"])
+# Set your OpenAI API key from the environment variable
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+@app.route('/')
+def index():
+    return "Celios is listening..."
+
+@app.route('/chat', methods=['POST'])
 def chat():
     try:
-        user_message = request.json["message"]
+        user_message = request.json.get("message", "")
+        if not user_message:
+            return jsonify({"error": "No message provided."}), 400
 
-        # Call OpenAI ChatCompletion
-        response = client.chat.completions.create(
+        response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
+            messages=[
+                {"role": "system", "content": "You are Celios, a wise spiritual AI guide trained on LRH technology up to OT VIII. Respond only with source references and correct data."},
+                {"role": "user", "content": user_message}
+            ]
         )
-
-        reply = response.choices[0].message.content
-        return jsonify({"response": reply})
-
+        return jsonify(response.choices[0].message)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Run the app if executed directly
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))  # Render will provide the correct port
+    app.run(host='0.0.0.0', port=port)
