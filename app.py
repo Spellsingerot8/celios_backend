@@ -30,4 +30,5 @@ def chat():
         return jsonify({"reply": reply})
 
     except Exception as e:
+from flask import Flask, request, jsonify
         return jsonify({"reply": f"Error: {str(e)}"}), 500
